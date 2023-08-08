@@ -200,6 +200,18 @@ class rx(rx_tx_common):
     def _num_rx_channels_enabled(self):
         return len(self.__rx_enabled_channels)
 
+    @property
+    def rx_ref(self):
+        """rx_ref: Reference digital read value of RX ADC"""
+        bits = self._rxadc.channels[0].data_format.bits # Assumes all channels have the same data_format
+        if bits == 0:
+            bits = 16 # Should be greater than or equal to the actual resolution, meaning there won't be any over-unity measurements with this guessed reference
+            print(f"RX resolution not available throigh iio data_format, defaulting to {bits} bits")
+        ref = 2 ** bits
+        if self._rxadc.channels[0].data_format.is_signed:
+            ref //= 2
+        return ref
+
     def rx_destroy_buffer(self):
         """rx_destroy_buffer: Clears RX buffer"""
         self.__rxbuf = None
@@ -515,6 +527,18 @@ class tx(dds, rx_tx_common):
                 if max(value) > ((self._num_tx_channels) - 1):
                     raise Exception("TX mapping exceeds available channels")
         self.__tx_enabled_channels = value
+
+    @property
+    def tx_ref(self):
+        """tx_ref: Reference digital value of TX DAC"""
+        bits = self._txdac.channels[0].data_format.bits # Assumes all channels have the same data_format
+        if bits == 0:
+            bits = 12 # Should be less than or equal to the actual resolution, preventing sending values that will be truncated on the hardware
+            print(f"TX resolution not available throigh iio data_format, defaulting to {bits} bits")
+        ref = 2 ** bits
+        if self._txdac.channels[0].data_format.is_signed:
+            ref //= 2
+        return ref
 
     def tx_destroy_buffer(self):
         """tx_destroy_buffer: Clears TX buffer"""

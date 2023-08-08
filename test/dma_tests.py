@@ -301,8 +301,10 @@ def dds_loopback(
     except Exception as e:
         del sdr
         raise Exception(e)
+
+    rxadc_ref = sdr.rx_ref
     del sdr
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=2 ** 13, plot=False)
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref, plot=False)
     indx = np.argmax(tone_peaks)
     diff = np.abs(tone_freqs[indx] - frequency)
     s = "Peak: " + str(tone_peaks[indx]) + "@" + str(tone_freqs[indx])
@@ -392,8 +394,9 @@ def dds_two_tone(
     except Exception as e:
         del sdr
         raise Exception(e)
+    rxadc_ref = sdr.rx_ref
     del sdr
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=2 ** 15)
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref)
     indx = heapq.nlargest(2, range(len(tone_peaks)), tone_peaks.__getitem__)
     s1 = "Peak 1: " + str(tone_peaks[indx[0]]) + " @ " + str(tone_freqs[indx[0]])
     s2 = "Peak 2: " + str(tone_peaks[indx[1]]) + " @ " + str(tone_freqs[indx[1]])
@@ -484,8 +487,9 @@ def nco_loopback(uri, classname, param_set, channel, frequency, peak_min):
     except Exception as e:
         del sdr
         raise Exception(e)
+    rxadc_ref = sdr.rx_ref
     del sdr
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=2 ** 15)
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref)
     indx = np.argmax(tone_peaks)
     diff = np.abs(tone_freqs[indx] - frequency)
     s = "Peak: " + str(tone_peaks[indx]) + "@" + str(tone_freqs[indx])
@@ -570,18 +574,20 @@ def cw_loopback(uri, classname, channel, param_set, use_tx2=False, use_rx2=False
         attr = "rx" + str(channel) + "_sample_rate"
         RXFS = int(getattr(sdr, attr))
 
-    A = 2 ** 15
+    txdac_ref = sdr.tx_ref
+    rxadc_ref = sdr.rx_ref
+
     fc = RXFS * 0.1
     fc = int(fc / (RXFS / N)) * (RXFS / N)
 
     ts = 1 / float(RXFS)
     t = np.arange(0, N * ts, ts)
     if sdr._complex_data:
-        i = np.cos(2 * np.pi * t * fc) * A * 0.5
-        q = np.sin(2 * np.pi * t * fc) * A * 0.5
+        i = np.cos(2 * np.pi * t * fc) * txdac_ref * 0.5
+        q = np.sin(2 * np.pi * t * fc) * txdac_ref * 0.5
         cw = i + 1j * q
     else:
-        cw = np.cos(2 * np.pi * t * fc) * A * 1
+        cw = np.cos(2 * np.pi * t * fc) * txdac_ref * 1
 
     # Pass through SDR
     try:
@@ -601,7 +607,7 @@ def cw_loopback(uri, classname, channel, param_set, use_tx2=False, use_rx2=False
     # print("Peak: @"+str(tone_freq) )
     # assert (fc * 0.01) > diff
 
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=A, plot=False)
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref, plot=False)
     indx = np.argmax(tone_peaks)
     diff = np.abs(tone_freqs[indx] - fc)
     s = "Peak: " + str(tone_peaks[indx]) + "@" + str(tone_freqs[indx])
@@ -657,7 +663,8 @@ def sfdr_low(classname, uri, channel, param_set, low, high, frequency, scale, pl
     sdr.rx_enabled_channels = [channel]
     sdr.rx_buffer_size = N * 2 * len(sdr.rx_enabled_channels)
 
-    ref = 2 ** 11
+    rxadc_ref = sdr.rx_ref
+    txdac_ref = sdr.tx_ref
 
     if hasattr(sdr, "sample_rate"):
         RXFS = int(sdr.sample_rate)
@@ -670,8 +677,8 @@ def sfdr_low(classname, uri, channel, param_set, low, high, frequency, scale, pl
     full_scale = 0.9
     ts = 1 / float(RXFS)
     t = np.arange(0, N * ts, ts)
-    i = np.cos(2 * np.pi * t * fc) * ref * full_scale
-    q = np.sin(2 * np.pi * t * fc) * ref * full_scale
+    i = np.cos(2 * np.pi * t * fc) * txdac_ref * full_scale
+    q = np.sin(2 * np.pi * t * fc) * txdac_ref * full_scale
     iq = i + 1j * q
 
     try:
@@ -683,7 +690,7 @@ def sfdr_low(classname, uri, channel, param_set, low, high, frequency, scale, pl
         for i in range(8):
             data = sdr.rx()
             time.sleep(1)
-            amps, freq = spec.spec_est(data, fs=RXFS, ref=2**13, num_ffts=1,  enable_windowing=True, plot=False)
+            amps, freq = spec.spec_est(data, fs=RXFS, ref=rxadc_ref, num_ffts=1,  enable_windowing=True, plot=False)
             amp += amps
         amp /= 8
     except Exception as e:
@@ -996,7 +1003,8 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
     sdr.rx_enabled_channels = [channel]
     sdr.rx_buffer_size = N * 2 * len(sdr.rx_enabled_channels)
 
-    ref = 2 ** 14
+    txdac_ref = sdr.tx_ref
+    rxadc_ref = sdr.rx_ref
 
     if hasattr(sdr, "sample_rate"):
         RXFS = int(sdr.sample_rate)
@@ -1009,8 +1017,8 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
     full_scale = 0.9
     ts = 1 / float(RXFS)
     t = np.arange(0, N * ts, ts)
-    i = np.cos(2 * np.pi * t * fc) * ref * full_scale
-    q = np.sin(2 * np.pi * t * fc) * ref * full_scale
+    i = np.cos(2 * np.pi * t * fc) * txdac_ref * full_scale
+    q = np.sin(2 * np.pi * t * fc) * txdac_ref * full_scale
     iq = i + 1j * q
 
     try:
@@ -1019,7 +1027,7 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
         for i in range(8):
             data = sdr.rx()
             #time.sleep(1)
-            amp, ffreqs = spec.spec_est(data, fs=RXFS, ref=2**13, enable_windowing=True, num_ffts=1, plot=False)
+            amp, ffreqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref, enable_windowing=True, num_ffts=1, plot=False)
             ffampl += amp
         ffampl/= 8
     except Exception as e:
