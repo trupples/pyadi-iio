@@ -100,7 +100,7 @@ def test_daq3_rx_data(test_dma_rx, iio_uri, classname, channel):
     [([-15.0, -150.0, -150.0, -150.0, -150.0, -150.0], [0.0, -67.0, -55.0, -72.0, -54.0, -74.0])],
 )
 def test_harmonic_values(
-    test_harmonics, classname, iio_uri, channel, param_set, low, high, frequency, scale, plot=True
+    test_harmonics, classname, iio_uri, channel, param_set, low, high, frequency, scale, plot=False
 ):
     test_harmonics(classname, iio_uri, channel, param_set, low, high, frequency, scale, plot)
 
@@ -127,7 +127,7 @@ def test_harmonic_values(
     [([-120.0, -120.0, -120.0, -120.0, -120.0, -120.0, -120.0], [-50, -50.0, -50.0, -90.0, -90.0, -90.0, -90.0])],
 )
 def test_peaks(
-    test_sfdrl, classname, iio_uri, channel, param_set, low, high, frequency, scale, plot=True
+    test_sfdrl, classname, iio_uri, channel, param_set, low, high, frequency, scale, plot=False
 ):
     test_sfdrl(classname, iio_uri, channel, param_set, low, high, frequency, scale, plot)
 
