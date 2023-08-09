@@ -1029,16 +1029,17 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
             #time.sleep(1)
             amp, ffreqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref, enable_windowing=True, num_ffts=1, plot=False)
             ffampl += amp
+
         ffampl/= 8
     except Exception as e:
         del sdr
         raise Exception(e)
 
     _, ml, peaks, indxs = spec.find_harmonics_from_main(
-        ffampl, ffreqs, sdr.sample_rate, num_harmonics=10, tolerance=0.01
+        ffampl, ffreqs, sdr.sample_rate, num_harmonics=len(low)-1, tolerance=0.01
     )
 
-    n = len(peaks)
+    n = len(peaks) # May be less than len(low), in which case only the first `n` values of `low` and `high` are used
     
     if np.iscomplexobj(data):
         ffreq_shift = fftshift(ffreqs)
@@ -1073,10 +1074,10 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
     print("Main should be between ", low[0], high[0])
     print("Main is at ", ffampl[ml], ffreqs[ml])
     assert low[0] <= ffampl[ml] <= high[0]
-    for i in range(n):
-        print("Harmonic should be between ", low[i+1], high[i+1])
-        print("Harmonic is ", peaks[i], ffreqs[indxs[i]])
-        assert low[i+1] <= peaks[i] <= high[i+1]
+    for i in range(1, n):
+        print("Harmonic should be between ", low[i], high[i])
+        print("Harmonic is ", peaks[i-1], ffreqs[indxs[i-1]])
+        assert low[i] <= peaks[i-1] <= high[i]
         
 
 
