@@ -1,6 +1,5 @@
 import heapq
 import test.rf.spec as spec
-#import genalyzer
 import time
 
 import adi
@@ -806,22 +805,6 @@ def t_sfdr(uri, classname, channel, param_set, sfdr_min, use_obs=False, full_sca
         raise Exception(e)
     del sdr
     valr, amp, freqs = spec.sfdr(data, plot=False)
-    # CALL GENALYZER
-    config_dict = {
-        "domain_wf": 0,
-        "fs": RXFS,
-        "fsr": 2,
-        "navg": 1,
-        "nfft": len(data),
-        "res": 16,
-        "type_wf": 2,
-    }
-    c = genalyzer.config_tone_meas(config_dict)
-    d = []
-    for dd in data:
-        d += [int(np.real(dd))]
-        d += [int(np.imag(dd))]
-    val = genalyzer.metric_t(c, d, "SFDR")
 
     if do_html_log:
         pytest.data_log = {
@@ -830,11 +813,12 @@ def t_sfdr(uri, classname, channel, param_set, sfdr_min, use_obs=False, full_sca
                 amp,
                 "Frequency (Hz)",
                 "Amplitude (dBFS)",
-                "SDFR {} dBc ({})".format(val, classname),
+                "SDFR {} dBc ({})".format(valr, classname),
             )
         }
-    print("SFDR:", val, "dB",f"(old {valr})")
-    assert val > sfdr_min
+    
+    print("SFDR:", valr, "dB")
+    assert valr > sfdr_min
 
 
 def gain_check(uri, classname, channel, param_set, dds_scale, min_rssi, max_rssi):
