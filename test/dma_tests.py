@@ -1023,7 +1023,7 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
         ffampl, ffreqs, sdr.sample_rate, num_harmonics=len(low)-1, tolerance=0.01
     )
 
-    n = len(peaks) # May be less than len(low), in which case only the first `n` values of `low` and `high` are used
+    n = min(len(peaks), len(low))
     
     if np.iscomplexobj(data):
         ffreq_shift = fftshift(ffreqs)
