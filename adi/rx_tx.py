@@ -36,6 +36,7 @@ from typing import List, Union
 
 import iio
 
+import warnings
 import numpy as np
 from adi.attribute import attribute
 from adi.context_manager import context_manager
@@ -99,6 +100,8 @@ class rx(rx_tx_common):
     _rx_unbuffered_data = False
     _rx_annotated = False
     _rx_stack_interleaved = False  # Convert from channel to sample interleaved
+    _rx_data_format = None
+    _rx_ref = None
 
     def __init__(self, rx_buffer_size=1024):
         if self._complex_data:
@@ -203,14 +206,7 @@ class rx(rx_tx_common):
     @property
     def rx_ref(self):
         """rx_ref: Reference digital read value of RX ADC"""
-        bits = self._rxadc.channels[0].data_format.bits # Assumes all channels have the same data_format
-        if bits == 0:
-            bits = 16 # Should be greater than or equal to the actual resolution, meaning there won't be any over-unity measurements with this guessed reference
-            print(f"RX resolution not available throigh iio data_format, defaulting to {bits} bits")
-        ref = 2 ** bits
-        if self._rxadc.channels[0].data_format.is_signed:
-            ref //= 2
-        return ref
+        return self._rx_ref
 
     def rx_destroy_buffer(self):
         """rx_destroy_buffer: Clears RX buffer"""
@@ -434,6 +430,8 @@ class tx(dds, rx_tx_common):
     __txbuf = None
     _output_byte_filename = "out.bin"
     _push_to_file = False
+    _tx_data_format = None
+    _tx_ref = None
 
     def __init__(self, tx_cyclic_buffer=False):
         if self._complex_data:
@@ -531,14 +529,7 @@ class tx(dds, rx_tx_common):
     @property
     def tx_ref(self):
         """tx_ref: Reference digital value of TX DAC"""
-        bits = self._txdac.channels[0].data_format.bits # Assumes all channels have the same data_format
-        if bits == 0:
-            bits = 12 # Should be less than or equal to the actual resolution, preventing sending values that will be truncated on the hardware
-            print(f"TX resolution not available throigh iio data_format, defaulting to {bits} bits")
-        ref = 2 ** bits
-        if self._txdac.channels[0].data_format.is_signed:
-            ref //= 2
-        return ref
+        return self._tx_ref
 
     def tx_destroy_buffer(self):
         """tx_destroy_buffer: Clears TX buffer"""
@@ -788,6 +779,12 @@ class rx_def(shared_def, rx, context_manager, metaclass=ABCMeta):
             if not self._rx_channel_names:
                 raise Exception(f"No scan elements found for device {self._rxadc.name}")
 
+            # Assume all channels on this ADC have the same data_format
+            self._rx_data_format = next(chan.data_format for chan in self._rxadc.channels if chan.scan_element)
+            if self._rx_data_format.bits == 0:
+                warnings.warn(f"Channel {next(chan.id for chan in self._rxadc.channels if chan.scan_element)} of device {self._rxadc.name} does not specify a valid data_format")
+            self._rx_ref = 1 << (self._rx_data_format.bits - self._rx_data_format.is_signed + self._rx_data_format.shift)
+
         rx.__init__(self)
 
         if self.__run_rx_post_init__:
@@ -834,7 +831,13 @@ class tx_def(shared_def, tx, context_manager, metaclass=ABCMeta):
             ]
 
             if not self._tx_channel_names:
-                raise Exception(f"No scan elements found for device {self._rxadc.name}")
+                raise Exception(f"No scan elements found for device {self._txdac.name}")
+
+            # Assume all channels on this DAC have the same data_format
+            self._tx_data_format = next(chan.data_format for chan in self._txdac.channels if chan.scan_element)
+            if self._tx_data_format.bits == 0:
+                warnings.warn(f"Channel {next(chan.id for chan in self._txdac.channels if chan.scan_element)} of device {self._txdac.name} does not specify a valid data_format")
+            self._tx_ref = 1 << (self._tx_data_format.bits - self._tx_data_format.is_signed + self._tx_data_format.shift)
 
         tx.__init__(self)
 
