@@ -779,11 +779,11 @@ class rx_def(shared_def, rx, context_manager, metaclass=ABCMeta):
             if not self._rx_channel_names:
                 raise Exception(f"No scan elements found for device {self._rxadc.name}")
 
-            # Assume all channels on this ADC have the same data_format
-            self._rx_data_format = next(chan.data_format for chan in self._rxadc.channels if chan.scan_element)
-            if self._rx_data_format.bits == 0:
-                warnings.warn(f"Channel {next(chan.id for chan in self._rxadc.channels if chan.scan_element)} of device {self._rxadc.name} does not specify a valid data_format")
-            self._rx_ref = 1 << (self._rx_data_format.bits - self._rx_data_format.is_signed + self._rx_data_format.shift)
+        # Set up reference value, assuming all channels on this ADC have the same data_format
+        self._rx_data_format = next(chan.data_format for chan in self._rxadc.channels if chan.scan_element)
+        if self._rx_data_format.bits == 0:
+            warnings.warn(f"Channel {next(chan.id for chan in self._rxadc.channels if chan.scan_element)} of device {self._rxadc.name} does not specify a valid data_format")
+        self._rx_ref = 1 << (self._rx_data_format.bits - self._rx_data_format.is_signed + self._rx_data_format.shift)
 
         rx.__init__(self)
 
@@ -833,11 +833,11 @@ class tx_def(shared_def, tx, context_manager, metaclass=ABCMeta):
             if not self._tx_channel_names:
                 raise Exception(f"No scan elements found for device {self._txdac.name}")
 
-            # Assume all channels on this DAC have the same data_format
-            self._tx_data_format = next(chan.data_format for chan in self._txdac.channels if chan.scan_element)
-            if self._tx_data_format.bits == 0:
-                warnings.warn(f"Channel {next(chan.id for chan in self._txdac.channels if chan.scan_element)} of device {self._txdac.name} does not specify a valid data_format")
-            self._tx_ref = 1 << (self._tx_data_format.bits - self._tx_data_format.is_signed + self._tx_data_format.shift)
+        # Set up reference value, assuming all channels on this DAC have the same data_format
+        self._tx_data_format = next(chan.data_format for chan in self._txdac.channels if chan.scan_element)
+        if self._tx_data_format.bits == 0:
+            warnings.warn(f"Channel {next(chan.id for chan in self._txdac.channels if chan.scan_element)} of device {self._txdac.name} does not specify a valid data_format")
+        self._tx_ref = 1 << (self._tx_data_format.bits - self._tx_data_format.is_signed + self._tx_data_format.shift)
 
         tx.__init__(self)
 
