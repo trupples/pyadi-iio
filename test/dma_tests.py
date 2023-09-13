@@ -180,8 +180,9 @@ def dma_loopback(uri, classname, channel):
     sdr.tx_cyclic_buffer = True
     # Create a ramp signal with different values for I and Q
     start = 0
-    tx_data = np.array(range(start, sdr.tx_ref), dtype=np.int16)
-    tx_data = tx_data << sdr._tx_data_format.shift
+    step = 16
+    tx_data = np.array(range(start, sdr.tx_ref // step), dtype=np.int16)
+    tx_data = tx_data * step
     tx_data = tx_data + 1j * (tx_data * -1 - 1)
     sdr.tx_enabled_channels = [channel]
     sdr.tx_buffer_size = len(tx_data) * 2 * len(sdr.tx_enabled_channels)
@@ -301,9 +302,8 @@ def dds_loopback(
         del sdr
         raise Exception(e)
 
-    rxadc_ref = sdr.rx_ref
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=sdr.rx_ref, plot=False)
     del sdr
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref, plot=False)
     indx = np.argmax(tone_peaks)
     diff = np.abs(tone_freqs[indx] - frequency)
     s = "Peak: " + str(tone_peaks[indx]) + "@" + str(tone_freqs[indx])
@@ -393,9 +393,8 @@ def dds_two_tone(
     except Exception as e:
         del sdr
         raise Exception(e)
-    rxadc_ref = sdr.rx_ref
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=sdr.rx_ref)
     del sdr
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref)
     indx = heapq.nlargest(2, range(len(tone_peaks)), tone_peaks.__getitem__)
     s1 = "Peak 1: " + str(tone_peaks[indx[0]]) + " @ " + str(tone_freqs[indx[0]])
     s2 = "Peak 2: " + str(tone_peaks[indx[1]]) + " @ " + str(tone_freqs[indx[1]])
@@ -486,9 +485,8 @@ def nco_loopback(uri, classname, param_set, channel, frequency, peak_min):
     except Exception as e:
         del sdr
         raise Exception(e)
-    rxadc_ref = sdr.rx_ref
+    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=sdr.rx_ref)
     del sdr
-    tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=rxadc_ref)
     indx = np.argmax(tone_peaks)
     diff = np.abs(tone_freqs[indx] - frequency)
     s = "Peak: " + str(tone_peaks[indx]) + "@" + str(tone_freqs[indx])
@@ -597,13 +595,13 @@ def cw_loopback(uri, classname, channel, param_set, use_tx2=False, use_rx2=False
     except Exception as e:
         del sdr
         raise Exception(e)
-    del sdr
     # tone_freq = freq_est(data, RXFS)
     # diff = np.abs(tone_freq - fc)
     # print("Peak: @"+str(tone_freq) )
     # assert (fc * 0.01) > diff
 
     tone_peaks, tone_freqs = spec.spec_est(data, fs=RXFS, ref=sdr.rx_ref, plot=False)
+    del sdr
     indx = np.argmax(tone_peaks)
     diff = np.abs(tone_freqs[indx] - fc)
     s = "Peak: " + str(tone_peaks[indx]) + "@" + str(tone_freqs[indx])
@@ -798,7 +796,7 @@ def t_sfdr(uri, classname, channel, param_set, sfdr_min, use_obs=False, full_sca
         del sdr
         raise Exception(e)
     del sdr
-    valr, amp, freqs = spec.sfdr(data, plot=False)
+    valr, amp, freqs, _, _, _ = spec.sfdr(data, plot=False)
 
     if do_html_log:
         pytest.data_log = {
