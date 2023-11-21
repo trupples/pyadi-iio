@@ -11,51 +11,39 @@ from numpy import (
     floor,
     linspace,
     log10,
+    log2,
     multiply,
     pi,
 )
-from numpy.fft import fft, fftfreq, fftshift
+from numpy.fft import fftfreq, fftshift
 from scipy import signal
 from scipy.signal import find_peaks
+import genalyzer
 
 
 def spec_est(x, fs, ref=2 ** 15, num_ffts=2, enable_windowing=False, plot=False):
-
     N = len(x)
     fft_len = int(np.floor(N/num_ffts))
-    possible_ffts = num_ffts
 
-    indx = 0
-    ampl_ave = np.zeros(fft_len)
-    freqs_ave = np.zeros(fft_len)
+    c = genalyzer.config_fftz(
+        npts = N,
+        qres = int(log2(ref) + 1 + 0.999), # +1 for sign, +0.999 to round up
+        navg = num_ffts,
+        nfft = fft_len,
+        win = 1 if enable_windowing else 2 # 1 = Hann, 2 = NoWindow
+    )
 
-    for n_fft in range(num_ffts):
+    xr = [int(sample.real) for sample in x]
+    xi = [int(sample.imag) for sample in x]
+    r, i = genalyzer.fftz(xr, xi, c)
 
-        seg = x[indx:indx+fft_len]
-        indx += fft_len
-
-        # Apply window
-        if enable_windowing:
-            window = np.hanning(fft_len)
-            seg = multiply(seg, window)
-
-        # Use FFT to get the amplitude of the spectrum
-        ampl = 1 / N * absolute(fft(seg))
-        ampl = 20 * log10(ampl / ref + 10 ** -20)
-
-        # FFT frequency bins
-        freqs = fftfreq(len(ampl), 1 / fs)
-
-        ampl_ave += ampl
-        freqs_ave += freqs
-
-    ampl_ave /= num_ffts
-    freqs_ave /= num_ffts
+    ampl_ave = np.array([10*log10(re**2 + im**2) for re, im in zip(r, i)])
+    freqs = fftfreq(fft_len, 1 / fs)
 
     # ampl and freqs for real data
     if not np.iscomplexobj(x):
         ampl_ave = ampl[0 : len(ampl_ave) // 2]
-        freqs_ave = freqs_ave[0 : len(freqs_ave) // 2]
+        freqs = freqs[0 : len(freqs) // 2]
 
     if plot:
         # Plot signal, showing how endpoints wrap from one chunk to the next
@@ -68,13 +56,13 @@ def spec_est(x, fs, ref=2 ** 15, num_ffts=2, enable_windowing=False, plot=False)
         plt.xlabel("Time [s]")
         # Plot shifted data on a shifted axis
         plt.subplot(2, 1, 2)
-        plt.plot(fftshift(freqs_ave), fftshift(ampl_ave))
+        plt.plot(fftshift(freqs), fftshift(ampl_ave))
         plt.margins(0.1, 0.1)
         plt.xlabel("Frequency [Hz]")
         plt.tight_layout()
         plt.show()
 
-    return ampl_ave, freqs_ave
+    return ampl_ave, freqs
 
 
 def find_peaks_cust(x, num_peaks=4):

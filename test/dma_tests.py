@@ -673,17 +673,9 @@ def sfdr_low(classname, uri, channel, param_set, low, high, frequency, scale, pl
     iq = i + 1j * q
 
     try:
-        #sdr.tx(iq)
-        # for _ in range(30):
-        #     data = sdr.rx()
-        amp = 0
-        freq = 0
-        for i in range(8):
-            data = sdr.rx()
-            time.sleep(1)
-            amps, freq = spec.spec_est(data, fs=RXFS, ref=sdr.rx_ref, num_ffts=1,  enable_windowing=True, plot=False)
-            amp += amps
-        amp /= 8
+        data = [sdr.rx() for _ in range(8)]
+        data = [x for window in data for x in window] # Flatten 8 received windows into a single long array
+        amp, freq = spec.spec_est(data, num_ffts=8, fs=RXFS, ref=sdr.rx_ref, enable_windowing=True, plot=False)
     except Exception as e:
         del sdr
         raise Exception(e)
@@ -995,15 +987,9 @@ def harmonic_vals(classname, uri, channel, param_set, low, high, frequency, scal
     iq = i + 1j * q
 
     try:
-        ffampl = 0
-        ffreqs = 0
-        for i in range(8):
-            data = sdr.rx()
-            #time.sleep(1)
-            amp, ffreqs = spec.spec_est(data, fs=RXFS, ref=sdr.rx_ref, enable_windowing=True, num_ffts=1, plot=False)
-            ffampl += amp
-
-        ffampl/= 8
+        data = [sdr.rx() for _ in range(8)]
+        data = [x for window in data for x in window] # Flatten 8 received windows into a single long array
+        ffampl, ffreqs = spec.spec_est(data, num_ffts=8, fs=RXFS, ref=sdr.rx_ref, enable_windowing=True, plot=False)
     except Exception as e:
         del sdr
         raise Exception(e)
