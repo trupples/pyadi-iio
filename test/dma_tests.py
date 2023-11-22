@@ -684,7 +684,7 @@ def sfdr_low(classname, uri, channel, param_set, low, high, frequency, scale, pl
     sfdr, peaks, indxs, pk = spec.sfdr_signal(data, amp, freq, plot=False)
     
     ml = indxs[0]
-    n = len(low)
+    n = min(len(low), len(peaks))
 
     if np.iscomplexobj(data):
         ffreq_shift = fftshift(freq)
@@ -720,7 +720,7 @@ def sfdr_low(classname, uri, channel, param_set, low, high, frequency, scale, pl
         # plt.show()
 
     print("sfdr is ", sfdr)
-    for i in range(n-1):
+    for i in range(n):
         print("Peak should be between ", low[i], high[i])
         print("Peak is ", peaks[i], freq[indxs[i]])
         assert low[i] <= peaks[i] <= high[i]
