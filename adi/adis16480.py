@@ -733,3 +733,19 @@ class adis16547(adis16XXX_with_delta_angl):
     """
 
     compatible_parts = ["adis16547-1", "adis16547-2", "adis16547-3"]
+
+class adis16607(adis16XXX_with_delta_angl):
+    """ADIS16607 Precision, Miniature MEMS IMU
+
+    This class is compatible with the following parts:
+    - adis16607-1
+    - adis16607-2
+    - adis16607-3
+
+    Args:
+        uri: URI of IIO context with ADIS16607 device
+        device_name: Name of the device in the IIO context. Default is adis16607-1
+        trigger_name: Name of the trigger in the IIO context. Default is adis16607-1-dev0
+    """
+
+    compatible_parts = ["adis16607-1", "adis16607-2", "adis16607-3"]

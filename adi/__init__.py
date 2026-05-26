@@ -87,6 +87,7 @@ from adi.adis16480 import (
     adis16497,
     adis16545,
     adis16547,
+    adis16607,
 )
 from adi.adis16507 import adis16507
 from adi.adis16550 import adis16550
