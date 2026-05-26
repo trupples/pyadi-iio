@@ -21,6 +21,7 @@ class adis16XXX(rx, context_manager, ABC):
         "accel_y",
         "accel_z",
         "temp0",
+        "timestamp",
     ]
 
     _device_name = ""

@@ -19,6 +19,7 @@ class adis16507(rx, context_manager):
         "accel_x",
         "accel_y",
         "accel_z",
+        "timestamp",
     ]
     _device_name = ""
     _rx_data_si_type = float

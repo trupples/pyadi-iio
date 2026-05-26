@@ -25,6 +25,7 @@ class adis16475(rx, context_manager):
         "deltavelocity_x",
         "deltavelocity_y",
         "deltavelocity_z",
+        "timestamp", # Not supported by ADIS16575
     ]
     _device_name = ""
 
